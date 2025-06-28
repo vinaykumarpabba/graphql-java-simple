@@ -8,6 +8,8 @@ import graphql.schema.idl.RuntimeWiring;
 import graphql.schema.idl.SchemaGenerator;
 import graphql.schema.idl.SchemaParser;
 import graphql.schema.idl.TypeDefinitionRegistry;
+import org.example.fetchers.AuthorByIdFetcher;
+import org.example.fetchers.BookByIdFetcher;
 import org.example.fetchers.HelloFetcher;
 
 import java.io.File;
@@ -24,6 +26,8 @@ public class Main {
         RuntimeWiring runtimeWiring = RuntimeWiring.newRuntimeWiring().type(
     "Query", builder -> builder
                     .dataFetcher("hello", new HelloFetcher())
+                    .dataFetcher("bookById", new BookByIdFetcher())
+                    .dataFetcher("authorById", new AuthorByIdFetcher())
         ).build();
 
         // 3. Generate the GraphQL schema
@@ -33,13 +37,31 @@ public class Main {
         );
         GraphQL graphQL = GraphQL.newGraphQL(graphQLSchema).build();
 
-        // 4. Execute a sample query
-        String query = "{ hello }";
+        // 4. Execute queries
+//        String query = "{ hello }";
+
+        String query = """
+                    {
+                        bookById(id: "1") {
+                            id
+                            name
+                            pageCount
+                            author {  // This will return null without the BookAuthorDataFetcher
+                                id
+                                firstName
+                                lastName
+                            }
+                        }
+                    }
+                """;
+
+
         Map<String, Object> data = graphQL.execute(query).getData();
+        prettyPrint(data);
 
-        System.out.println(
-            new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(data)
-        );
+    }
 
+    private static void prettyPrint(Object data) throws JsonProcessingException {
+        System.out.println(new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(data));
     }
 }
