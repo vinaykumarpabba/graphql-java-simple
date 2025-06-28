@@ -9,6 +9,7 @@ import graphql.schema.idl.SchemaGenerator;
 import graphql.schema.idl.SchemaParser;
 import graphql.schema.idl.TypeDefinitionRegistry;
 import org.example.fetchers.AuthorByIdFetcher;
+import org.example.fetchers.BookAuthorFetcher;
 import org.example.fetchers.BookByIdFetcher;
 import org.example.fetchers.HelloFetcher;
 
@@ -23,12 +24,16 @@ public class Main {
         TypeDefinitionRegistry typeDefinitionRegistry = schemaParser.parse(schemaFile);
 
         // 2. Configure RuntimeWiring
-        RuntimeWiring runtimeWiring = RuntimeWiring.newRuntimeWiring().type(
-    "Query", builder -> builder
-                    .dataFetcher("hello", new HelloFetcher())
-                    .dataFetcher("bookById", new BookByIdFetcher())
-                    .dataFetcher("authorById", new AuthorByIdFetcher())
-        ).build();
+        RuntimeWiring runtimeWiring = RuntimeWiring.newRuntimeWiring()
+                .type("Query", builder -> builder
+                        .dataFetcher("hello", new HelloFetcher())
+                        .dataFetcher("bookById", new BookByIdFetcher())
+                        .dataFetcher("authorById", new AuthorByIdFetcher())
+                )
+                .type("Book", builder -> builder
+                        .dataFetcher("author", new BookAuthorFetcher(new AuthorByIdFetcher()))
+                )
+                .build();
 
         // 3. Generate the GraphQL schema
         SchemaGenerator schemaGenerator = new SchemaGenerator();
@@ -40,13 +45,15 @@ public class Main {
         // 4. Execute queries
 //        String query = "{ hello }";
 
+
+        // author will return null without the BookAuthorDataFetcher
         String query = """
                     {
                         bookById(id: "1") {
                             id
                             name
                             pageCount
-                            author {  // This will return null without the BookAuthorDataFetcher
+                            author {
                                 id
                                 firstName
                                 lastName
